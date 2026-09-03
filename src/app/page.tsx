@@ -1,7 +1,29 @@
 import { pool, Company } from "@/lib/db";
-import { setCompanyStatus } from "./actions";
+import {
+  setCompanyStatus,
+  markOutreached,
+  clearOutreach,
+  setResponseStatus,
+  setOutreachNotes,
+} from "./actions";
 
 const PAGE_SIZE = 50;
+const FOLLOWUP_DAYS = 14;
+
+const RESPONSE_LABELS: Record<string, string> = {
+  positive: "Positive",
+  negative: "Negative",
+};
+
+const RESPONSE_STYLES: Record<string, string> = {
+  positive: "bg-green-100 text-green-700",
+  negative: "bg-red-100 text-red-700",
+};
+
+function daysSince(dateStr: string) {
+  const ms = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
 
 const STATUS_LABELS: Record<string, string> = {
   unclassified: "Unclassified",
@@ -22,6 +44,7 @@ type SearchParams = {
   status?: string;
   metro?: string;
   vertical?: string;
+  followup?: string;
   page?: string;
 };
 
@@ -35,6 +58,7 @@ export default async function Home({
   const status = sp.status ?? "";
   const metro = sp.metro ?? "";
   const vertical = sp.vertical ?? "";
+  const followup = sp.followup ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const conditions: string[] = [];
@@ -60,6 +84,13 @@ export default async function Home({
     conditions.push(`vertical = $${p}`);
     params.push(vertical);
     p++;
+  }
+  if (followup === "due") {
+    conditions.push(
+      `outreached_at is not null and response_status is null and outreached_at <= now() - interval '${FOLLOWUP_DAYS} days'`
+    );
+  } else if (followup === "never") {
+    conditions.push(`outreached_at is null`);
   }
 
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
@@ -88,8 +119,13 @@ export default async function Home({
     `select distinct vertical from companies order by vertical`
   );
 
+  const dueRes = await pool.query(
+    `select count(*) from companies where outreached_at is not null and response_status is null and outreached_at <= now() - interval '${FOLLOWUP_DAYS} days'`
+  );
+  const dueCount = parseInt(dueRes.rows[0].count, 10);
+
   const qs = (overrides: Partial<SearchParams>) => {
-    const merged = { q, status, metro, vertical, page: String(page), ...overrides };
+    const merged = { q, status, metro, vertical, followup, page: String(page), ...overrides };
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) {
       if (v) params.set(k, String(v));
@@ -105,6 +141,15 @@ export default async function Home({
         {Object.entries(statusCounts)
           .map(([s, c]) => `${STATUS_LABELS[s] ?? s}: ${c}`)
           .join(" · ")}
+        {dueCount > 0 && (
+          <>
+            {" "}
+            ·{" "}
+            <a href={qs({ followup: "due", page: "1" })} className="text-orange-600 underline font-medium">
+              {dueCount} due for follow-up
+            </a>
+          </>
+        )}
       </p>
 
       <form method="GET" className="flex flex-wrap gap-2 mb-4 items-center">
@@ -139,10 +184,15 @@ export default async function Home({
             </option>
           ))}
         </select>
+        <select name="followup" defaultValue={followup} className="border rounded px-2 py-1.5 text-sm">
+          <option value="">Any outreach state</option>
+          <option value="due">Follow-up due</option>
+          <option value="never">Never outreached</option>
+        </select>
         <button type="submit" className="bg-black text-white rounded px-3 py-1.5 text-sm">
           Filter
         </button>
-        {(q || status || metro || vertical) && (
+        {(q || status || metro || vertical || followup) && (
           <a href="/" className="text-sm text-gray-500 underline">
             clear
           </a>
@@ -161,6 +211,7 @@ export default async function Home({
               <th className="p-2">Contact</th>
               <th className="p-2">Email</th>
               <th className="p-2">Status</th>
+              <th className="p-2">Outreach</th>
             </tr>
           </thead>
           <tbody>
@@ -252,6 +303,100 @@ export default async function Home({
                         </form>
                       ))}
                     </div>
+                  </div>
+                </td>
+                <td className="p-2 min-w-[180px]">
+                  <div className="flex flex-col gap-1">
+                    {c.outreached_at ? (
+                      <span className="text-xs text-gray-600">
+                        Outreached {daysSince(c.outreached_at)}d ago
+                        {!c.response_status && daysSince(c.outreached_at) >= FOLLOWUP_DAYS && (
+                          <span className="ml-1 inline-block px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                            follow-up due
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Not yet outreached</span>
+                    )}
+
+                    <div className="flex gap-1 flex-wrap">
+                      <form
+                        action={async () => {
+                          "use server";
+                          await markOutreached(c.id);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100"
+                        >
+                          {c.outreached_at ? "Re-outreach" : "Mark outreached"}
+                        </button>
+                      </form>
+                      {c.outreached_at && (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await clearOutreach(c.id);
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100 text-gray-400"
+                          >
+                            clear
+                          </button>
+                        </form>
+                      )}
+                    </div>
+
+                    {c.outreached_at && (
+                      <div className="flex gap-1">
+                        {(["positive", "negative"] as const).map((s) => (
+                          <form
+                            key={s}
+                            action={async () => {
+                              "use server";
+                              await setResponseStatus(c.id, c.response_status === s ? null : s);
+                            }}
+                          >
+                            <button
+                              type="submit"
+                              className={`text-[11px] border rounded px-1.5 py-0.5 hover:opacity-80 ${
+                                c.response_status === s
+                                  ? RESPONSE_STYLES[s]
+                                  : "bg-white text-gray-500"
+                              }`}
+                            >
+                              {RESPONSE_LABELS[s]}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    )}
+
+                    <form
+                      action={async (formData: FormData) => {
+                        "use server";
+                        await setOutreachNotes(c.id, String(formData.get("notes") ?? ""));
+                      }}
+                      className="flex gap-1"
+                    >
+                      <input
+                        type="text"
+                        name="notes"
+                        defaultValue={c.outreach_notes ?? ""}
+                        placeholder="comments..."
+                        className="border rounded px-1 py-0.5 text-[11px] w-28"
+                      />
+                      <button
+                        type="submit"
+                        className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100"
+                      >
+                        Save
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>

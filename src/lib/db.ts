@@ -44,6 +44,9 @@ export type Company = {
   contact_title: string | null;
   email: string | null;
   email_candidates: EmailCandidate[] | null;
+  outreached_at: string | null;
+  response_status: string | null;
+  outreach_notes: string | null;
   created_at: string;
   updated_at: string;
 };
