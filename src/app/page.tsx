@@ -16,8 +16,8 @@ const RESPONSE_LABELS: Record<string, string> = {
 };
 
 const RESPONSE_STYLES: Record<string, string> = {
-  positive: "bg-green-100 text-green-700",
-  negative: "bg-red-100 text-red-700",
+  positive: "bg-emerald-100 text-emerald-700",
+  negative: "bg-rose-100 text-rose-700",
 };
 
 function daysSince(dateStr: string) {
@@ -33,10 +33,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  unclassified: "bg-gray-100 text-gray-700",
-  bad_website: "bg-red-100 text-red-700",
-  good_website: "bg-green-100 text-green-700",
-  no_website: "bg-yellow-100 text-yellow-700",
+  unclassified: "bg-slate-100 text-slate-600",
+  bad_website: "bg-rose-100 text-rose-700",
+  good_website: "bg-emerald-100 text-emerald-700",
+  no_website: "bg-amber-100 text-amber-700",
 };
 
 type SearchParams = {
@@ -135,8 +135,8 @@ export default async function Home({
 
   return (
     <div className="max-w-7xl mx-auto p-6 w-full">
-      <h1 className="text-xl font-semibold mb-1">Company Database</h1>
-      <p className="text-sm text-gray-500 mb-4">
+      <h1 className="text-xl font-semibold mb-1 text-slate-800">Company Database</h1>
+      <p className="text-sm text-slate-500 mb-4">
         {total} companies matching current filters &middot;{" "}
         {Object.entries(statusCounts)
           .map(([s, c]) => `${STATUS_LABELS[s] ?? s}: ${c}`)
@@ -145,7 +145,7 @@ export default async function Home({
           <>
             {" "}
             ·{" "}
-            <a href={qs({ followup: "due", page: "1" })} className="text-orange-600 underline font-medium">
+            <a href={qs({ followup: "due", page: "1" })} className="text-amber-600 underline font-medium">
               {dueCount} due for follow-up
             </a>
           </>
@@ -158,9 +158,13 @@ export default async function Home({
           name="q"
           defaultValue={q}
           placeholder="Search name or domain..."
-          className="border rounded px-3 py-1.5 text-sm w-64"
+          className="border border-slate-300 rounded px-3 py-1.5 text-sm w-64 bg-white text-slate-800 placeholder:text-slate-400"
         />
-        <select name="status" defaultValue={status} className="border rounded px-2 py-1.5 text-sm">
+        <select
+          name="status"
+          defaultValue={status}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABELS).map(([val, label]) => (
             <option key={val} value={val}>
@@ -168,7 +172,11 @@ export default async function Home({
             </option>
           ))}
         </select>
-        <select name="metro" defaultValue={metro} className="border rounded px-2 py-1.5 text-sm">
+        <select
+          name="metro"
+          defaultValue={metro}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
           <option value="">All metros</option>
           {metrosRes.rows.map((r) => (
             <option key={r.metro} value={r.metro}>
@@ -176,7 +184,11 @@ export default async function Home({
             </option>
           ))}
         </select>
-        <select name="vertical" defaultValue={vertical} className="border rounded px-2 py-1.5 text-sm">
+        <select
+          name="vertical"
+          defaultValue={vertical}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
           <option value="">All verticals</option>
           {verticalsRes.rows.map((r) => (
             <option key={r.vertical} value={r.vertical}>
@@ -184,24 +196,31 @@ export default async function Home({
             </option>
           ))}
         </select>
-        <select name="followup" defaultValue={followup} className="border rounded px-2 py-1.5 text-sm">
+        <select
+          name="followup"
+          defaultValue={followup}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
           <option value="">Any outreach state</option>
           <option value="due">Follow-up due</option>
           <option value="never">Never outreached</option>
         </select>
-        <button type="submit" className="bg-black text-white rounded px-3 py-1.5 text-sm">
+        <button
+          type="submit"
+          className="bg-indigo-600 text-white rounded px-3 py-1.5 text-sm hover:bg-indigo-700"
+        >
           Filter
         </button>
         {(q || status || metro || vertical || followup) && (
-          <a href="/" className="text-sm text-gray-500 underline">
+          <a href="/" className="text-sm text-slate-500 underline hover:text-slate-800">
             clear
           </a>
         )}
       </form>
 
-      <div className="border rounded overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left">
+      <div className="border border-slate-200 rounded overflow-hidden overflow-x-auto bg-white">
+        <table className="w-full text-sm text-slate-800">
+          <thead className="bg-slate-100 text-left text-slate-600">
             <tr>
               <th className="p-2">Company</th>
               <th className="p-2">Website</th>
@@ -216,10 +235,10 @@ export default async function Home({
           </thead>
           <tbody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-t hover:bg-gray-50 align-top">
+              <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50 align-top text-slate-800">
                 <td className="p-2 max-w-[220px]">
                   <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-gray-400">{c.address}</div>
+                  <div className="text-xs text-slate-400">{c.address}</div>
                 </td>
                 <td className="p-2 max-w-[200px] truncate">
                   {c.website_url ? (
@@ -227,12 +246,12 @@ export default async function Home({
                       href={c.website_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-blue-600 underline"
+                      className="text-indigo-600 underline hover:text-indigo-800"
                     >
                       {c.domain || c.website_url}
                     </a>
                   ) : (
-                    <span className="text-gray-400">none</span>
+                    <span className="text-slate-400">none</span>
                   )}
                 </td>
                 <td className="p-2">{c.metro}</td>
@@ -243,7 +262,7 @@ export default async function Home({
                 <td className="p-2">{c.phone}</td>
                 <td className="p-2 max-w-[160px]">
                   <div className="font-medium">{c.contact_name}</div>
-                  <div className="text-xs text-gray-400">{c.contact_title}</div>
+                  <div className="text-xs text-slate-400">{c.contact_title}</div>
                 </td>
                 <td className="p-2 max-w-[220px]">
                   {c.email_candidates && c.email_candidates.length > 0 ? (
@@ -254,10 +273,10 @@ export default async function Home({
                           title={`${cand.source} · ${cand.status} · ${cand.note}`}
                           className={`text-xs px-1.5 py-0.5 rounded w-fit ${
                             cand.status === "confirmed_deliverable"
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-emerald-100 text-emerald-700"
                               : cand.status.includes("personal")
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-gray-100 text-gray-600"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-slate-100 text-slate-600"
                           }`}
                         >
                           {cand.email}
@@ -265,14 +284,14 @@ export default async function Home({
                       ))}
                     </div>
                   ) : (
-                    <span className="text-gray-300 text-xs">—</span>
+                    <span className="text-slate-300 text-xs">—</span>
                   )}
                 </td>
                 <td className="p-2">
                   <div className="flex flex-col gap-1">
                     <span
                       className={`inline-block px-2 py-0.5 rounded text-xs w-fit ${
-                        STATUS_STYLES[c.status] ?? "bg-gray-100 text-gray-700"
+                        STATUS_STYLES[c.status] ?? "bg-slate-100 text-slate-600"
                       }`}
                     >
                       {STATUS_LABELS[c.status] ?? c.status}
@@ -289,7 +308,7 @@ export default async function Home({
                           <button
                             type="submit"
                             disabled={c.status === s}
-                            className="text-[11px] border rounded px-1.5 py-0.5 disabled:opacity-30 hover:bg-gray-100"
+                            className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 disabled:opacity-30 hover:bg-slate-100"
                             title={STATUS_LABELS[s]}
                           >
                             {s === "bad_website"
@@ -308,16 +327,16 @@ export default async function Home({
                 <td className="p-2 min-w-[180px]">
                   <div className="flex flex-col gap-1">
                     {c.outreached_at ? (
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-slate-600">
                         Outreached {daysSince(c.outreached_at)}d ago
                         {!c.response_status && daysSince(c.outreached_at) >= FOLLOWUP_DAYS && (
-                          <span className="ml-1 inline-block px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                          <span className="ml-1 inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
                             follow-up due
                           </span>
                         )}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">Not yet outreached</span>
+                      <span className="text-xs text-slate-400">Not yet outreached</span>
                     )}
 
                     <div className="flex gap-1 flex-wrap">
@@ -329,7 +348,7 @@ export default async function Home({
                       >
                         <button
                           type="submit"
-                          className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100"
+                          className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-100"
                         >
                           {c.outreached_at ? "Re-outreach" : "Mark outreached"}
                         </button>
@@ -343,7 +362,7 @@ export default async function Home({
                         >
                           <button
                             type="submit"
-                            className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100 text-gray-400"
+                            className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-400 hover:bg-slate-100"
                           >
                             clear
                           </button>
@@ -363,10 +382,10 @@ export default async function Home({
                           >
                             <button
                               type="submit"
-                              className={`text-[11px] border rounded px-1.5 py-0.5 hover:opacity-80 ${
+                              className={`text-[11px] border border-slate-300 rounded px-1.5 py-0.5 hover:bg-slate-100 ${
                                 c.response_status === s
                                   ? RESPONSE_STYLES[s]
-                                  : "bg-white text-gray-500"
+                                  : "bg-white text-slate-500"
                               }`}
                             >
                               {RESPONSE_LABELS[s]}
@@ -388,11 +407,11 @@ export default async function Home({
                         name="notes"
                         defaultValue={c.outreach_notes ?? ""}
                         placeholder="comments..."
-                        className="border rounded px-1 py-0.5 text-[11px] w-28"
+                        className="border border-slate-300 rounded px-1 py-0.5 text-[11px] w-28 bg-white text-slate-800 placeholder:text-slate-400"
                       />
                       <button
                         type="submit"
-                        className="text-[11px] border rounded px-1.5 py-0.5 hover:bg-gray-100"
+                        className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-100"
                       >
                         Save
                       </button>
@@ -405,18 +424,24 @@ export default async function Home({
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-4 text-sm">
+      <div className="flex items-center justify-between mt-4 text-sm text-slate-600">
         <span>
           Page {page} of {totalPages}
         </span>
         <div className="flex gap-2">
           {page > 1 && (
-            <a href={qs({ page: String(page - 1) })} className="border rounded px-3 py-1">
+            <a
+              href={qs({ page: String(page - 1) })}
+              className="border border-slate-300 rounded px-3 py-1 bg-white hover:bg-slate-100"
+            >
               Prev
             </a>
           )}
           {page < totalPages && (
-            <a href={qs({ page: String(page + 1) })} className="border rounded px-3 py-1">
+            <a
+              href={qs({ page: String(page + 1) })}
+              className="border border-slate-300 rounded px-3 py-1 bg-white hover:bg-slate-100"
+            >
               Next
             </a>
           )}
