@@ -89,7 +89,8 @@ export default async function Home({
   const rows = rowsRes.rows;
 
   const statusCountsRes = await pool.query(
-    `select status, count(*) from companies ${where} group by status`
+    `select status, count(*) from companies ${where} group by status`,
+    params
   );
   const statusCounts: Record<string, number> = {};
   for (const r of statusCountsRes.rows) statusCounts[r.status] = parseInt(r.count, 10);
@@ -339,7 +340,7 @@ export default async function Home({
                       </span>
                     )}
                     <div className="flex gap-1 flex-wrap">
-                      {c.apollo_status !== "pending" && (
+                      {c.status === "good_website" && c.apollo_status !== "pending" && (
                         <form
                           action={async () => {
                             "use server";
