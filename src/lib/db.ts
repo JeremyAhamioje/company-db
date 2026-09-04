@@ -47,6 +47,7 @@ export type Company = {
   outreached_at: string | null;
   response_status: string | null;
   outreach_notes: string | null;
+  apollo_status: string | null;
   created_at: string;
   updated_at: string;
 };

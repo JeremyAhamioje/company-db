@@ -38,3 +38,8 @@ export async function setOutreachNotes(id: string, notes: string) {
   await pool.query(`update companies set outreach_notes = $1 where id = $2`, [notes, id]);
   revalidatePath("/");
 }
+
+export async function setApolloStatus(id: string, status: string | null) {
+  await pool.query(`update companies set apollo_status = $1 where id = $2`, [status, id]);
+  revalidatePath("/");
+}

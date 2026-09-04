@@ -1,14 +1,25 @@
 import { pool, Company } from "@/lib/db";
+import { buildWhere, FOLLOWUP_DAYS } from "@/lib/filters";
 import {
   setCompanyStatus,
   markOutreached,
   clearOutreach,
   setResponseStatus,
   setOutreachNotes,
+  setApolloStatus,
 } from "./actions";
 
 const PAGE_SIZE = 50;
-const FOLLOWUP_DAYS = 14;
+
+const APOLLO_LABELS: Record<string, string> = {
+  pending: "Apollo: pending",
+  done: "Apollo: done",
+};
+
+const APOLLO_STYLES: Record<string, string> = {
+  pending: "bg-indigo-100 text-indigo-700",
+  done: "bg-emerald-100 text-emerald-700",
+};
 
 const RESPONSE_LABELS: Record<string, string> = {
   positive: "Positive",
@@ -45,6 +56,7 @@ type SearchParams = {
   metro?: string;
   vertical?: string;
   followup?: string;
+  apollo?: string;
   page?: string;
 };
 
@@ -59,41 +71,11 @@ export default async function Home({
   const metro = sp.metro ?? "";
   const vertical = sp.vertical ?? "";
   const followup = sp.followup ?? "";
+  const apollo = sp.apollo ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const conditions: string[] = [];
-  const params: unknown[] = [];
-  let p = 1;
-
-  if (q) {
-    conditions.push(`(name ilike $${p} or domain ilike $${p})`);
-    params.push(`%${q}%`);
-    p++;
-  }
-  if (status) {
-    conditions.push(`status = $${p}`);
-    params.push(status);
-    p++;
-  }
-  if (metro) {
-    conditions.push(`metro = $${p}`);
-    params.push(metro);
-    p++;
-  }
-  if (vertical) {
-    conditions.push(`vertical = $${p}`);
-    params.push(vertical);
-    p++;
-  }
-  if (followup === "due") {
-    conditions.push(
-      `outreached_at is not null and response_status is null and outreached_at <= now() - interval '${FOLLOWUP_DAYS} days'`
-    );
-  } else if (followup === "never") {
-    conditions.push(`outreached_at is null`);
-  }
-
-  const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
+  const { where, params, nextParam } = buildWhere({ q, status, metro, vertical, followup, apollo });
+  let p = nextParam;
 
   const countRes = await pool.query(`select count(*) from companies ${where}`, params);
   const total = parseInt(countRes.rows[0].count, 10);
@@ -125,13 +107,21 @@ export default async function Home({
   const dueCount = parseInt(dueRes.rows[0].count, 10);
 
   const qs = (overrides: Partial<SearchParams>) => {
-    const merged = { q, status, metro, vertical, followup, page: String(page), ...overrides };
+    const merged = { q, status, metro, vertical, followup, apollo, page: String(page), ...overrides };
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) {
       if (v) params.set(k, String(v));
     }
     return `?${params.toString()}`;
   };
+
+  const exportUrl = (() => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries({ q, status, metro, vertical, followup, apollo })) {
+      if (v) p.set(k, String(v));
+    }
+    return `/api/export?${p.toString()}`;
+  })();
 
   return (
     <div className="max-w-7xl mx-auto p-6 w-full">
@@ -205,17 +195,33 @@ export default async function Home({
           <option value="due">Follow-up due</option>
           <option value="never">Never outreached</option>
         </select>
+        <select
+          name="apollo"
+          defaultValue={apollo}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
+          <option value="">Any Apollo state</option>
+          <option value="pending">Apollo pending</option>
+          <option value="done">Apollo done</option>
+          <option value="none">Not queued for Apollo</option>
+        </select>
         <button
           type="submit"
           className="bg-indigo-600 text-white rounded px-3 py-1.5 text-sm hover:bg-indigo-700"
         >
           Filter
         </button>
-        {(q || status || metro || vertical || followup) && (
+        {(q || status || metro || vertical || followup || apollo) && (
           <a href="/" className="text-sm text-slate-500 underline hover:text-slate-800">
             clear
           </a>
         )}
+        <a
+          href={exportUrl}
+          className="ml-auto border border-slate-300 rounded px-3 py-1.5 text-sm bg-white text-slate-600 hover:bg-slate-100"
+        >
+          Export CSV
+        </a>
       </form>
 
       <div className="border border-slate-200 rounded overflow-hidden overflow-x-auto bg-white">
@@ -321,6 +327,63 @@ export default async function Home({
                           </button>
                         </form>
                       ))}
+                    </div>
+
+                    {c.apollo_status && (
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-xs w-fit ${
+                          APOLLO_STYLES[c.apollo_status] ?? "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {APOLLO_LABELS[c.apollo_status] ?? c.apollo_status}
+                      </span>
+                    )}
+                    <div className="flex gap-1 flex-wrap">
+                      {c.apollo_status !== "pending" && (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await setApolloStatus(c.id, "pending");
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-100"
+                          >
+                            Queue for Apollo
+                          </button>
+                        </form>
+                      )}
+                      {c.apollo_status === "pending" && (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await setApolloStatus(c.id, "done");
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-100"
+                          >
+                            Mark done
+                          </button>
+                        </form>
+                      )}
+                      {c.apollo_status && (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await setApolloStatus(c.id, null);
+                          }}
+                        >
+                          <button
+                            type="submit"
+                            className="text-[11px] border border-slate-300 rounded px-1.5 py-0.5 text-slate-400 hover:bg-slate-100"
+                          >
+                            clear
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </td>
