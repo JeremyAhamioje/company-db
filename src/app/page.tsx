@@ -248,6 +248,7 @@ export default async function Home({
               <th className="p-2">Phone</th>
               <th className="p-2">Contact</th>
               <th className="p-2">Email</th>
+              <th className="p-2">Social</th>
               <th className="p-2">Status</th>
               <th className="p-2">Outreach</th>
             </tr>
@@ -300,6 +301,26 @@ export default async function Home({
                         >
                           {cand.email}
                         </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-300 text-xs">—</span>
+                  )}
+                </td>
+                <td className="p-2 max-w-[180px]">
+                  {c.social_candidates && c.social_candidates.length > 0 ? (
+                    <div className="flex flex-col gap-0.5">
+                      {c.social_candidates.map((sc, i) => (
+                        <a
+                          key={i}
+                          href={sc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={sc.evidence}
+                          className="text-xs px-1.5 py-0.5 rounded w-fit bg-violet-100 text-violet-700 hover:bg-violet-200"
+                        >
+                          {sc.platform === "instagram" ? "IG" : "FB"}: {sc.handle}
+                        </a>
                       ))}
                     </div>
                   ) : (

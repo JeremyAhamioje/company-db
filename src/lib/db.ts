@@ -48,6 +48,7 @@ export type Company = {
   response_status: string | null;
   outreach_notes: string | null;
   apollo_status: string | null;
+  social_candidates: SocialCandidate[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -57,4 +58,11 @@ export type EmailCandidate = {
   source: string;
   status: string;
   note: string;
+};
+
+export type SocialCandidate = {
+  platform: string;
+  handle: string;
+  url: string;
+  evidence: string;
 };
