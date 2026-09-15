@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
     vertical: sp.get("vertical") ?? undefined,
     followup: sp.get("followup") ?? undefined,
     apollo: sp.get("apollo") ?? undefined,
+    website: sp.get("website") ?? undefined,
   });
 
   const res = await pool.query<Company>(

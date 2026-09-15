@@ -57,6 +57,7 @@ type SearchParams = {
   vertical?: string;
   followup?: string;
   apollo?: string;
+  website?: string;
   page?: string;
 };
 
@@ -72,9 +73,10 @@ export default async function Home({
   const vertical = sp.vertical ?? "";
   const followup = sp.followup ?? "";
   const apollo = sp.apollo ?? "";
+  const website = sp.website ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const { where, params, nextParam } = buildWhere({ q, status, metro, vertical, followup, apollo });
+  const { where, params, nextParam } = buildWhere({ q, status, metro, vertical, followup, apollo, website });
   let p = nextParam;
 
   const countRes = await pool.query(`select count(*) from companies ${where}`, params);
@@ -108,7 +110,7 @@ export default async function Home({
   const dueCount = parseInt(dueRes.rows[0].count, 10);
 
   const qs = (overrides: Partial<SearchParams>) => {
-    const merged = { q, status, metro, vertical, followup, apollo, page: String(page), ...overrides };
+    const merged = { q, status, metro, vertical, followup, apollo, website, page: String(page), ...overrides };
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) {
       if (v) params.set(k, String(v));
@@ -118,7 +120,7 @@ export default async function Home({
 
   const exportUrl = (() => {
     const p = new URLSearchParams();
-    for (const [k, v] of Object.entries({ q, status, metro, vertical, followup, apollo })) {
+    for (const [k, v] of Object.entries({ q, status, metro, vertical, followup, apollo, website })) {
       if (v) p.set(k, String(v));
     }
     return `/api/export?${p.toString()}`;
@@ -206,13 +208,23 @@ export default async function Home({
           <option value="done">Apollo done</option>
           <option value="none">Not queued for Apollo</option>
         </select>
+        <select
+          name="website"
+          defaultValue={website}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+          title="Based on actual data, not the manual Status classification"
+        >
+          <option value="">Any website (data)</option>
+          <option value="none">No website in data</option>
+          <option value="has">Has website in data</option>
+        </select>
         <button
           type="submit"
           className="bg-indigo-600 text-white rounded px-3 py-1.5 text-sm hover:bg-indigo-700"
         >
           Filter
         </button>
-        {(q || status || metro || vertical || followup || apollo) && (
+        {(q || status || metro || vertical || followup || apollo || website) && (
           <a href="/" className="text-sm text-slate-500 underline hover:text-slate-800">
             clear
           </a>

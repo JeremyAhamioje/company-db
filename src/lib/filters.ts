@@ -7,6 +7,7 @@ export type Filters = {
   vertical?: string;
   followup?: string;
   apollo?: string;
+  website?: string;
 };
 
 export function buildWhere(f: Filters): { where: string; params: unknown[]; nextParam: number } {
@@ -48,6 +49,11 @@ export function buildWhere(f: Filters): { where: string; params: unknown[]; next
     conditions.push(`apollo_status = 'done'`);
   } else if (f.apollo === "none") {
     conditions.push(`apollo_status is null`);
+  }
+  if (f.website === "none") {
+    conditions.push(`(website_url is null or website_url = '')`);
+  } else if (f.website === "has") {
+    conditions.push(`(website_url is not null and website_url != '')`);
   }
 
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
