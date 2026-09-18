@@ -23,6 +23,7 @@ const COLUMNS: (keyof Company)[] = [
   "contact_title",
   "email",
   "status",
+  "is_bad_lead",
   "apollo_status",
   "outreached_at",
   "response_status",
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
     followup: sp.get("followup") ?? undefined,
     apollo: sp.get("apollo") ?? undefined,
     website: sp.get("website") ?? undefined,
+    bad_lead: sp.get("bad_lead") ?? undefined,
   });
 
   const res = await pool.query<Company>(

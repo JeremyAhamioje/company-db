@@ -43,3 +43,8 @@ export async function setApolloStatus(id: string, status: string | null) {
   await pool.query(`update companies set apollo_status = $1 where id = $2`, [status, id]);
   revalidatePath("/");
 }
+
+export async function setBadLead(id: string, value: boolean) {
+  await pool.query(`update companies set is_bad_lead = $1 where id = $2`, [value, id]);
+  revalidatePath("/");
+}

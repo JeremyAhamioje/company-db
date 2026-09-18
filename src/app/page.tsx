@@ -7,6 +7,7 @@ import {
   setResponseStatus,
   setOutreachNotes,
   setApolloStatus,
+  setBadLead,
 } from "./actions";
 
 const PAGE_SIZE = 50;
@@ -58,6 +59,7 @@ type SearchParams = {
   followup?: string;
   apollo?: string;
   website?: string;
+  bad_lead?: string;
   page?: string;
 };
 
@@ -74,9 +76,19 @@ export default async function Home({
   const followup = sp.followup ?? "";
   const apollo = sp.apollo ?? "";
   const website = sp.website ?? "";
+  const badLead = sp.bad_lead ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const { where, params, nextParam } = buildWhere({ q, status, metro, vertical, followup, apollo, website });
+  const { where, params, nextParam } = buildWhere({
+    q,
+    status,
+    metro,
+    vertical,
+    followup,
+    apollo,
+    website,
+    bad_lead: badLead,
+  });
   let p = nextParam;
 
   const countRes = await pool.query(`select count(*) from companies ${where}`, params);
@@ -110,7 +122,18 @@ export default async function Home({
   const dueCount = parseInt(dueRes.rows[0].count, 10);
 
   const qs = (overrides: Partial<SearchParams>) => {
-    const merged = { q, status, metro, vertical, followup, apollo, website, page: String(page), ...overrides };
+    const merged = {
+      q,
+      status,
+      metro,
+      vertical,
+      followup,
+      apollo,
+      website,
+      bad_lead: badLead,
+      page: String(page),
+      ...overrides,
+    };
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) {
       if (v) params.set(k, String(v));
@@ -120,7 +143,7 @@ export default async function Home({
 
   const exportUrl = (() => {
     const p = new URLSearchParams();
-    for (const [k, v] of Object.entries({ q, status, metro, vertical, followup, apollo, website })) {
+    for (const [k, v] of Object.entries({ q, status, metro, vertical, followup, apollo, website, bad_lead: badLead })) {
       if (v) p.set(k, String(v));
     }
     return `/api/export?${p.toString()}`;
@@ -218,13 +241,22 @@ export default async function Home({
           <option value="none">No website in data</option>
           <option value="has">Has website in data</option>
         </select>
+        <select
+          name="bad_lead"
+          defaultValue={badLead}
+          className="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white text-slate-800"
+        >
+          <option value="">Include bad leads</option>
+          <option value="hide">Hide bad leads</option>
+          <option value="only">Bad leads only</option>
+        </select>
         <button
           type="submit"
           className="bg-indigo-600 text-white rounded px-3 py-1.5 text-sm hover:bg-indigo-700"
         >
           Filter
         </button>
-        {(q || status || metro || vertical || followup || apollo || website) && (
+        {(q || status || metro || vertical || followup || apollo || website || badLead) && (
           <a href="/" className="text-sm text-slate-500 underline hover:text-slate-800">
             clear
           </a>
@@ -255,7 +287,14 @@ export default async function Home({
           </thead>
           <tbody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-t border-slate-100 hover:bg-slate-50 align-top text-slate-800">
+              <tr
+                key={c.id}
+                className={`border-t align-top text-slate-800 ${
+                  c.is_bad_lead
+                    ? "bg-rose-50 border-rose-100 hover:bg-rose-100"
+                    : "border-slate-100 hover:bg-slate-50"
+                }`}
+              >
                 <td className="p-2 max-w-[220px]">
                   <div className="font-medium">{c.name}</div>
                   <div className="text-xs text-slate-400">{c.address}</div>
@@ -362,6 +401,29 @@ export default async function Home({
                         </form>
                       ))}
                     </div>
+
+                    {c.is_bad_lead && (
+                      <span className="inline-block px-2 py-0.5 rounded text-xs w-fit bg-rose-600 text-white font-medium">
+                        Bad lead
+                      </span>
+                    )}
+                    <form
+                      action={async () => {
+                        "use server";
+                        await setBadLead(c.id, !c.is_bad_lead);
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className={`text-[11px] border rounded px-1.5 py-0.5 ${
+                          c.is_bad_lead
+                            ? "border-rose-300 text-rose-700 bg-rose-100 hover:bg-rose-200"
+                            : "border-slate-300 text-slate-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+                        }`}
+                      >
+                        {c.is_bad_lead ? "Unmark bad lead" : "Mark bad lead"}
+                      </button>
+                    </form>
 
                     {c.apollo_status && (
                       <span

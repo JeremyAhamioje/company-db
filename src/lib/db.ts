@@ -49,6 +49,7 @@ export type Company = {
   outreach_notes: string | null;
   apollo_status: string | null;
   social_candidates: SocialCandidate[] | null;
+  is_bad_lead: boolean;
   created_at: string;
   updated_at: string;
 };

@@ -8,6 +8,7 @@ export type Filters = {
   followup?: string;
   apollo?: string;
   website?: string;
+  bad_lead?: string;
 };
 
 export function buildWhere(f: Filters): { where: string; params: unknown[]; nextParam: number } {
@@ -54,6 +55,11 @@ export function buildWhere(f: Filters): { where: string; params: unknown[]; next
     conditions.push(`(website_url is null or website_url = '')`);
   } else if (f.website === "has") {
     conditions.push(`(website_url is not null and website_url != '')`);
+  }
+  if (f.bad_lead === "hide") {
+    conditions.push(`is_bad_lead = false`);
+  } else if (f.bad_lead === "only") {
+    conditions.push(`is_bad_lead = true`);
   }
 
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
